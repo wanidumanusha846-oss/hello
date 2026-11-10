@@ -7,6 +7,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: qa-inspect-android
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,10 +37,10 @@ jobs:
       - name: Sync web files
         run: npx cap sync android
       - name: Build APK
-        working-directory: android
+        working-directory: qa-inspect-android/android
         run: ./gradlew assembleDebug
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: QA-Inspect-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: qa-inspect-android/android/app/build/outputs/apk/debug/app-debug.apk
