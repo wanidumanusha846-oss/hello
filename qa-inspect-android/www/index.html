@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1f2a30">
+<title>QA Inspections and Analysis</title>
+<style>
+  :root{
+    --bg:#eef0ec; --ink:#1f2a30; --muted:#5d6b72; --card:#ffffff; --line:#d5d9d3;
+    --mix:#2f7f8f; --cut:#c2552d; --mold:#6a5acd; --pack:#2e8b57; --analyze:#b8860b;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#12191d; --ink:#eaeeea; --muted:#93a2a9; --card:#1c262b; --line:#2c3a41;}
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+  html,body{height:100%;margin:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);
+       -webkit-user-select:none;user-select:none;overscroll-behavior:none}
+  .screen{display:none;height:100%;flex-direction:column}
+  .screen.on{display:flex}
+
+  /* Home */
+  header.top{padding:calc(env(safe-area-inset-top,0px) + 28px) 22px 14px}
+  header.top h1{margin:0;font-size:1.7rem;letter-spacing:-.02em}
+  header.top p{margin:6px 0 0;color:var(--muted);font-size:.95rem}
+  .grid{flex:1;overflow:auto;padding:10px 16px calc(env(safe-area-inset-bottom,0px) + 20px);
+        display:grid;grid-template-columns:1fr 1fr;gap:14px;align-content:start}
+  .tile{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--ink);
+        border-radius:18px;padding:18px 16px;text-align:left;font:inherit;cursor:pointer;
+        display:flex;flex-direction:column;gap:14px;min-height:150px;border-top:6px solid var(--c)}
+  .tile:active{transform:scale(.97)}
+  .tile:focus-visible{outline:3px solid var(--c);outline-offset:2px}
+  .tile.wide{grid-column:1 / -1;min-height:110px}
+  .ico{width:44px;height:44px;border-radius:12px;background:var(--c);display:grid;place-items:center}
+  .ico svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .tile b{font-size:1.1rem}
+  .tile span.d{color:var(--muted);font-size:.85rem;margin-top:-10px}
+  .lock{margin:0 22px calc(env(safe-area-inset-bottom,0px) + 14px);color:var(--muted);font-size:.8rem;text-align:center}
+
+  /* Sub-list */
+  .list{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px;align-content:start}
+  .row{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:16px;
+       padding:18px 16px;font:inherit;font-weight:600;font-size:1.02rem;text-align:left;cursor:pointer;
+       display:flex;justify-content:space-between;align-items:center;border-left:6px solid var(--c)}
+  .row:active{transform:scale(.98)}
+  .row:focus-visible{outline:3px solid var(--c);outline-offset:2px}
+  .row small{display:block;color:var(--muted);font-weight:400;font-size:.85rem;margin-top:3px}
+
+  /* Viewer */
+  .bar{display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top,0px) + 8px) 12px 8px;
+       background:#1f2a30;color:#fff}
+  .bar button{appearance:none;border:0;background:rgba(255,255,255,.14);color:#fff;border-radius:12px;
+       height:42px;padding:0 14px;font:inherit;font-weight:600;cursor:pointer}
+  .bar h2{margin:0;font-size:1.05rem;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .frame{flex:1;position:relative;background:#fff}
+  iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .msg{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
+       gap:14px;padding:30px;text-align:center;background:var(--bg)}
+  .msg.on{display:flex}
+  .msg button{appearance:none;border:0;background:var(--ink);color:var(--bg);border-radius:12px;
+       padding:12px 18px;font:inherit;font-weight:600;cursor:pointer}
+  .spin{width:34px;height:34px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--ink);
+        animation:s 0.8s linear infinite}
+  @keyframes s{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.spin{animation-duration:3s}}
+
+  .msg{overflow:auto}
+  .msg b{font-size:1.15rem}
+  .msg .why{color:var(--muted);max-width:420px}
+  .tips{margin:0;padding-left:20px;text-align:left;max-width:420px;color:var(--ink);font-size:.9rem;line-height:1.45;-webkit-user-select:text;user-select:text}
+  .tips li{margin-bottom:6px}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .btnlink{display:inline-block;text-decoration:none;border:2px solid var(--ink);color:var(--ink);border-radius:12px;padding:10px 16px;font-weight:600}
+  .bar button.help{width:42px;padding:0}
+
+  /* PIN */
+  #pin{align-items:center;justify-content:center;gap:18px;padding:30px;text-align:center}
+  #pin input{font:inherit;font-size:1.6rem;letter-spacing:.5em;text-align:center;width:200px;padding:12px;
+       border-radius:14px;border:2px solid var(--line);background:var(--card);color:var(--ink);-webkit-user-select:text;user-select:text}
+  #pin button{appearance:none;border:0;background:var(--ink);color:var(--bg);border-radius:12px;padding:12px 28px;font:inherit;font-weight:600}
+  #pinErr{color:#c0392b;min-height:1.2em;font-size:.9rem}
+</style>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+
+<!-- PIN (optional) -->
+<section id="pin" class="screen">
+  <h1 style="margin:0">QA Inspections and Analysis</h1>
+  <p style="margin:0;color:var(--muted)">Enter PIN to open</p>
+  <input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off" aria-label="PIN">
+  <div id="pinErr" role="alert"></div>
+  <button id="pinGo">Open</button>
+</section>
+
+<!-- Home -->
+<section id="home" class="screen">
+  <header class="top">
+    <h1>QA Inspections and Analysis</h1>
+    <p>Choose a section to view</p>
+  </header>
+  <div class="grid" id="grid"></div>
+  <div class="lock">View only. Nothing here can be edited.</div>
+</section>
+
+<!-- Sub-list (sections with several interfaces) -->
+<section id="listScreen" class="screen">
+  <div class="bar">
+    <button id="listBack" aria-label="Back to sections">‹ Back</button>
+    <h2 id="listTitle"></h2>
+  </div>
+  <div class="list" id="listBody"></div>
+</section>
+
+<!-- Viewer -->
+<section id="viewer" class="screen">
+  <div class="bar">
+    <button id="back" aria-label="Back to sections">‹ Back</button>
+    <h2 id="vTitle"></h2>
+    <button id="help" class="help" aria-label="Not loading? Get help">?</button>
+    <button id="reload" aria-label="Reload">↻</button>
+  </div>
+  <div class="frame">
+    <iframe id="fr" title="Section view" referrerpolicy="no-referrer"></iframe>
+    <div class="msg on" id="loading"><div class="spin"></div><div>Loading…</div></div>
+    <div class="msg" id="fail" role="alert">
+      <b id="failTitle"></b>
+      <div class="why" id="failWhy"></div>
+      <ul class="tips" id="failTips"></ul>
+      <div class="btns">
+        <button id="retry">Try again</button>
+        <a id="openBrowser" class="btnlink" target="_blank" rel="noopener">Open in browser</a>
+        <button id="failClose">Close</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ==========================================================
+   1. EDIT ONLY THIS BLOCK BEFORE YOU PUBLISH THE APP
+   Paste each Apps Script Web App URL (ends with /exec).
+   After you publish, users have no way to change these.
+   ========================================================== */
+const SECTIONS = Object.freeze([
+  { id:"mixing",  name:"Mixing",  desc:"Batches and recipes",  color:"var(--mix)",
+    pages:[
+      { name:"Parameter check",  desc:"Enter and review checks", url:"https://script.google.com/macros/s/AKfycbwu9duvz4kSPeY6AmSTAV1pAiQ8DGXy8azEEsltWyyTkkZV0chIsy2WsFVdmR7QcZusaA/exec" },
+      { name:"Chemical Weighing", desc:"Weigh and record chemicals", url:"https://script.google.com/macros/s/AKfycbz2axor6-PY0IBSRzj42hlv5l58oQ4-TPqgeELJcbg8DbzlCyTs8SheLRfE48tomItU/exec" }
+    ],
+    icon:'<path d="M4 8h16l-2 11H6L4 8Z"/><path d="M9 8c0-3 6-3 6 0"/><path d="M12 12v3"/>' },
+  { id:"cutting", name:"Cutting", desc:"Cut logs and sizes",   color:"var(--cut)",
+    url:"https://script.google.com/macros/s/PASTE_CUTTING_ID/exec",
+    icon:'<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/>' },
+  { id:"molding", name:"Molding", desc:"Mold runs and output", color:"var(--mold)",
+    url:"https://script.google.com/macros/s/PASTE_MOLDING_ID/exec",
+    icon:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 12h18M9 6v12"/>' },
+  { id:"packing", name:"Packing", desc:"Packed and dispatched", color:"var(--pack)",
+    url:"https://script.google.com/macros/s/PASTE_PACKING_ID/exec",
+    icon:'<path d="m3 7 9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7M12 11v10"/>' },
+  { id:"analyze", name:"Analyze", desc:"Reports and trends", color:"var(--analyze)", wide:true,
+    pages:[
+      { name:"Flowing Defect", desc:"Defect reports", url:"https://script.google.com/macros/s/AKfycbxhsu_jnEC8bM1SDQ9BGS-yc17WtLHHEzb0m8-S_jC_rE5B1zbXZAPWe_EpIvMvhMYy9w/exec" }
+    ],
+    icon:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>' }
+]);
+
+/* Optional PIN lock. Leave "" for no PIN.
+   To use one: put the SHA-256 hash of your PIN here (see instructions). */
+const PIN_HASH = "";
+/* ========================================================== */
+
+const $ = id => document.getElementById(id);
+const show = id => { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on'); };
+let current = null, timer = null;
+
+// Build tiles
+SECTIONS.forEach(s=>{
+  const b = document.createElement('button');
+  b.className = 'tile' + (s.wide ? ' wide' : '');
+  b.style.setProperty('--c', s.color);
+  b.innerHTML = `<div class="ico"><svg viewBox="0 0 24 24" aria-hidden="true">${s.icon}</svg></div>
+                 <div><b>${s.name}</b></div><span class="d">${s.desc}</span>`;
+  b.onclick = () => tapSection(s);
+  $('grid').appendChild(b);
+});
+
+let section = null;
+
+function tapSection(s){
+  section = s;
+  if (s.pages && s.pages.length > 1) {
+    $('listTitle').textContent = s.name;
+    const body = $('listBody'); body.innerHTML = '';
+    s.pages.forEach(pg=>{
+      const b = document.createElement('button');
+      b.className = 'row'; b.style.setProperty('--c', s.color);
+      const l = document.createElement('div');
+      l.innerHTML = '<span></span><small></small>';
+      l.firstChild.textContent = pg.name;
+      l.lastChild.textContent = pg.desc || '';
+      b.appendChild(l); b.appendChild(document.createTextNode('›'));
+      b.onclick = () => openPage(pg.name, pg.url);
+      body.appendChild(b);
+    });
+    history.pushState({v:'list'}, '');
+    show('listScreen');
+  } else {
+    const pg = s.pages ? s.pages[0] : s;
+    openPage(pg.name || s.name, pg.url);
+  }
+}
+function openPage(title, url){
+  current = { url, title };
+  $('vTitle').textContent = title;
+  history.pushState({v:'page'}, '');
+  show('viewer');
+  load();
+}
+const TIPS_ALL = [
+  "Tap “Open in browser”. The message shown there names the exact problem.",
+  "“Script function not found: doGet” — add a doGet function to that Apps Script project, then redeploy.",
+  "Works in the browser but blank here — add .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL) to doGet.",
+  "“Sorry, unable to open the file” or a sign-in page — set Who has access to Anyone (or your organization).",
+  "Changed the script? Deploy → Manage deployments → pencil → New version → Deploy.",
+  "The link must end with /exec (not /dev)."
+];
+function showFail(kind){
+  const t = current ? current.title : 'This section';
+  const T = $('failTitle'), W = $('failWhy'), L = $('failTips');
+  L.innerHTML = '';
+  $('retry').style.display = ''; $('openBrowser').style.display = ''; $('failClose').style.display = 'none';
+  let tips = [];
+  if (kind === 'placeholder') {
+    T.textContent = t + ' is not set up yet';
+    W.textContent = 'This section still has a placeholder link. Ask the app administrator to add the real link.';
+    $('retry').style.display = 'none'; $('openBrowser').style.display = 'none';
+  } else if (kind === 'offline') {
+    T.textContent = 'No internet connection';
+    W.textContent = 'Connect to Wi-Fi or mobile data, then tap Try again.';
+  } else if (kind === 'help') {
+    T.textContent = 'Is ' + t + ' not loading?';
+    W.textContent = 'If you see a blank page or a Google error inside the section, check these:';
+    tips = TIPS_ALL; $('failClose').style.display = '';
+  } else {
+    T.textContent = t + ' took too long to open';
+    W.textContent = 'The page did not respond within 25 seconds. Check your connection and try again. If it keeps happening, check these:';
+    tips = TIPS_ALL;
+  }
+  tips.forEach(x => { const li = document.createElement('li'); li.textContent = x; L.appendChild(li); });
+  $('openBrowser').href = current ? current.url : '#';
+  $('loading').classList.remove('on'); $('fail').classList.add('on');
+}
+function load(){
+  clearTimeout(timer);
+  $('fail').classList.remove('on');
+  if (/PASTE_/.test(current.url)) { $('fr').src = 'about:blank'; return showFail('placeholder'); }
+  if (!navigator.onLine) { return showFail('offline'); }
+  $('loading').classList.add('on');
+  const fr = $('fr');
+  fr.onload = () => { clearTimeout(timer); $('loading').classList.remove('on'); };
+  fr.src = current.url;
+  timer = setTimeout(()=>{ if($('loading').classList.contains('on')) showFail(navigator.onLine ? 'timeout' : 'offline'); }, 25000);
+}
+function goBack(){
+  if (current) {                       // leaving a page
+    clearTimeout(timer); $('fr').src = 'about:blank'; current = null;
+    const hasList = section && section.pages && section.pages.length > 1;
+    show(hasList ? 'listScreen' : 'home');
+    if (!hasList) section = null;
+  } else {                             // leaving the sub-list
+    section = null; show('home');
+  }
+}
+
+// Back buttons and phone back gesture all use browser history
+$('back').onclick = () => history.back();
+$('listBack').onclick = () => history.back();
+$('reload').onclick = load;
+$('retry').onclick = load;
+$('help').onclick = () => { if (current) showFail('help'); };
+$('failClose').onclick = () => $('fail').classList.remove('on');
+history.replaceState({v:'home'}, '');
+window.addEventListener('popstate', () => { if (current || section) goBack(); });
+
+// Lock-down: no context menu, no drag, no copy
+['contextmenu','dragstart','copy','cut'].forEach(ev=>document.addEventListener(ev,e=>{
+  if(e.target.id!=='pinIn') e.preventDefault();
+}));
+
+// PIN
+async function sha(t){
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+  return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+async function tryPin(){
+  if(await sha($('pinIn').value) === PIN_HASH){ sessionStorage.setItem('ok','1'); show('home'); }
+  else { $('pinErr').textContent = 'Wrong PIN. Try again.'; $('pinIn').value=''; }
+}
+$('pinGo').onclick = tryPin;
+$('pinIn').addEventListener('keydown', e=>{ if(e.key==='Enter') tryPin(); });
+
+(function start(){
+  let ok = false; try{ ok = sessionStorage.getItem('ok')==='1'; }catch(e){}
+  show(!PIN_HASH || ok ? 'home' : 'pin');
+})();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
